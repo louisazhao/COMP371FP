@@ -11,6 +11,8 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 #include <vector>
+#include "AABBCollider.h"
+#include "Horse.h"
 
 // GLEW
 #define GLEW_STATIC
@@ -37,43 +39,9 @@ GLFWwindow* window;
 
 //-----------------horse variables--------------
 //-----------------------------------------------
-
-//-----------------horse positions--------------
-glm::vec3 bodyPosition=glm::vec3(0.0f,3.5f,0.0f);//body
-glm::mat4 model_body;
-glm::mat4 model_neck;
-glm::mat4 model_fru;
-glm::mat4 model_flu;
-glm::mat4 model_bru;
-glm::mat4 model_blu;
-glm::mat4 model_base=glm::mat4(1.0f);
-//-----------------horse joints--------------
-enum
-{
-    head_to_neck=0,
-    neck_to_torso=1,
-    torso_to_front_upper_right_leg=2,
-    front_right_knee=3,
-    torso_to_hind_upper_right_leg=4,
-    hind_right_knee=5,
-    torso_to_front_upper_left_leg=6,
-    front_left_knee=7,
-    torso_to_hind_upper_left_leg=8,
-    hind_left_knee=9
-};
-float joints[10]={100.0,-53.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0};
-//-----------------horse movements--------------
-float moveOnX=0,moveOnZ=0;
 const float minMove=-30.0f,maxMove=30.0f;
-float userScale=1.0f;
-float userRotateOnY=0.0f;
-float userRotateOnZ=0.0f;
-float userRotateOnX=0.0f;
-int runStep=1;
-bool isRunning=false;
-int timeInterval=0;
-int speedDiv=7;
 const int troopSize=20;
+vector<Horse> horseTroop;
 
 
 //----------world and camera variables-----------
@@ -115,21 +83,6 @@ bool shadowOn=false;
 //**               prototypes                  **
 //***********************************************
 
-
-//------------draw horse functions---------------
-void drawHorse(const ShaderProg &shader,float moveOnX=0,float moveOnZ=0,float userRotateOnY=0.0,float userScale=1.0);
-void body(const ShaderProg &shader,float moveOnX=0,float moveOnZ=0,float userRotateOnY=0.0,float userScale=1.0);
-void frontLeftUpperLeg(const ShaderProg &shader);
-void frontLeftLowerLeg(const ShaderProg &shader);
-void frontRightUpperLeg(const ShaderProg &shader);
-void frontRightLowerLeg(const ShaderProg &shader);
-void backLeftUpperLeg(const ShaderProg &shader);
-void backLeftLowerLeg(const ShaderProg &shader);
-void backRightUpperLeg(const ShaderProg &shader);
-void backRightLowerLeg(const ShaderProg &shader);
-void neck(const ShaderProg &shader);
-void head(const ShaderProg &shader);
-void run();
 
 //---------------callback functions------------
 void window_size_callback(GLFWwindow* window, int width, int height);
@@ -180,13 +133,7 @@ int main() {
     
     // tell GLFW to capture our mouse
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-    
-    /*
-     //configure viewport
-     int screenWidth, screenHeight;
-     glfwGetFramebufferSize(window, &screenWidth, &screenHeight);
-     glViewport(0, 0, screenWidth, screenHeight);
-     */
+
     
     //initialize glew
     if(GLEW_OK!=glewInit())
@@ -362,8 +309,12 @@ int main() {
     
     //troop values;
     vector<float> randomMovesOnX=genRandomMoveOnX(troopSize);
-    vector<float> randomMovesOnY=genRandomMoveOnZ(troopSize);
+    vector<float> randomMovesOnZ=genRandomMoveOnZ(troopSize);
     vector<float> randomRotations=genRandomRotationOnY(troopSize);
+    for(int i=0;i<troopSize;i++)
+    {
+        horseTroop.push_back(Horse(randomMovesOnX[i],randomMovesOnZ[i],randomRotations[i]));
+    }
     
     //game loop
     while(!glfwWindowShouldClose(window))
@@ -404,9 +355,10 @@ int main() {
         glBindVertexArray(VAOs[2]);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, horseTexture);
-        for(int i=0;i<troopSize;i++)
+        
+        for(vector<Horse>::iterator it=horseTroop.begin();it!=horseTroop.end();++it)
         {
-            drawHorse(simpleDepthShder,randomMovesOnX[i],randomMovesOnY[i],randomRotations[i]);
+            it->drawHorse(simpleDepthShder,it->moveOnX,it->moveOnZ,it->userRotateOnY,it->userScale,it->worldrotationX,it->worldrotationY);
         }
         
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -525,11 +477,11 @@ int main() {
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, depthMap);
         
-        for(int i=0;i<troopSize;i++)
+        for(vector<Horse>::iterator it=horseTroop.begin();it!=horseTroop.end();++it)
         {
-            drawHorse(horseShader,randomMovesOnX[i],randomMovesOnY[i],randomRotations[i]);
+            it->drawHorse(horseShader,it->moveOnX,it->moveOnZ,it->userRotateOnY,it->userScale,it->worldrotationX,it->worldrotationY);
         }
-
+        
         
         glfwSwapBuffers(window);
     }
@@ -541,246 +493,6 @@ int main() {
     return 0;
 }
 
-void drawHorse(const ShaderProg &shader,float moveOnX,float moveOnZ,float userRotateOnY,float userScale)
-{
-    if(isRunning)
-    {
-        run();
-        ++timeInterval;
-        timeInterval %= (speedDiv+1);
-        runStep += (timeInterval / speedDiv);
-        if(runStep > 6)
-        {
-            runStep = 1;
-        }
-    }
-    body(shader,moveOnX,moveOnZ,userRotateOnY,userScale);
-    model_body=glm::scale(model_body, glm::vec3(1.0f/4.0f,1.0f/1.5f,1.0f/2.0f));
-    //eliminate the scaler on body model, since its not uniformly scaled. otherwise, rotation will have weird result
-    neck(shader);
-    model_neck=glm::scale(model_neck,glm::vec3(1.0/2.5, 1.0/1.0, 1.0/0.5));
-    //eliminate the scaler on neck model, since its not uniformly scaled. otherwise, rotation will have weird result
-    head(shader);
-    frontLeftUpperLeg(shader);
-    frontLeftLowerLeg(shader);
-    frontRightUpperLeg(shader);
-    frontRightLowerLeg(shader);
-    backLeftUpperLeg(shader);
-    backLeftLowerLeg(shader);
-    backRightUpperLeg(shader);
-    backRightLowerLeg(shader);
-    //reset
-    model_body=glm::mat4(1.0f);
-    model_neck=glm::mat4(1.0f);
-    model_fru=glm::mat4(1.0f);
-    model_flu=glm::mat4(1.0f);
-    model_bru=glm::mat4(1.0f);
-    model_blu=glm::mat4(1.0f);
-    
-}
-
-void body(const ShaderProg &shader,float moveOnX,float moveOnZ,float userRotateOnY,float userScale)
-{
-    model_body=glm::rotate(model_body, glm::radians(worldrotationX), glm::vec3(1.0,0.0,0.0));
-    model_body=glm::rotate(model_body, glm::radians(worldrotationY), glm::vec3(0.0,1.0,0.0));
-    //model_body=glm::rotate(model_body, glm::radians(userRotateOnZ), glm::vec3(0.0f,0.0f,1.0f));
-    model_body=glm::rotate(model_body, glm::radians(userRotateOnY), glm::vec3(0.0f,1.0f,0.0f));
-    //model_body=glm::rotate(model_body, glm::radians(userRotateOnX), glm::vec3(1.0f,0.0f,0.0f));
-    model_body=glm::scale(model_body, glm::vec3(userScale,userScale,userScale));
-    model_body=glm::translate(model_body, glm::vec3(moveOnX,bodyPosition[1],moveOnZ));
-    model_body=glm::scale(model_body, glm::vec3(4.0f,1.5f,2.0f));
-    
-    /*
-    model_body=glm::translate(model_base, glm::vec3(bodyPosition[0]+moveOnX,bodyPosition[1],bodyPosition[2]+moveOnZ));
-    model_body=glm::scale(model_body, glm::vec3(4.0f*userScale,2.5f*userScale,1.0f*userScale));
-    model_body=glm::rotate(model_body, glm::radians(userRotateOnZ), glm::vec3(0.0f,0.0f,1.0f));
-    model_body=glm::rotate(model_body, glm::radians(userRotateOnY), glm::vec3(0.0f,1.0f,0.0f));
-    model_body=glm::rotate(model_body, glm::radians(userRotateOnX), glm::vec3(1.0f,0.0f,0.0f));
-    model_body=glm::rotate(model_body, glm::radians(worldrotationX), glm::vec3(1.0,0.0,0.0));
-    model_body=glm::rotate(model_body, glm::radians(worldrotationY), glm::vec3(0.0,1.0,0.0));
-     */
-    shader.setMat4("model", model_body);
-    shader.setVec3("partColor", glm::vec3(0.2f,0.2f,0.1f));
-    glDrawArrays(GL_TRIANGLES, 0, 36);
-}
-void frontLeftUpperLeg(const ShaderProg &shader)
-{
-    model_flu=glm::translate(model_body, glm::vec3(-1.4f, -0.25f, 0.5f));
-    model_flu=glm::rotate(model_flu, glm::radians(joints[torso_to_front_upper_left_leg]), glm::vec3(0.0, 0.0, 1.0));
-    model_flu = glm::translate(model_flu, glm::vec3(0.0,-1.0, 0.0));
-    //first move the rotation point to the joint position
-    model_flu = glm::scale(model_flu, glm::vec3(0.5f,1.5f,0.5f));
-    shader.setMat4("model", model_flu);
-    shader.setVec3("partColor", glm::vec3(0.2f,0.4f,0.5f));
-    glDrawArrays(GL_TRIANGLES, 0, 36);
-}
-void frontLeftLowerLeg(const ShaderProg &shader)
-{
-    model_flu = glm::scale(model_flu, glm::vec3(1.0/0.5f,1.0/1.5f,1.0/0.5f));
-    //eliminate the scaler on flu model, since its not uniformly scaled. otherwise, rotation will have weird result
-    glm::mat4 model_fll=glm::translate(model_flu, glm::vec3(0, -0.5, 0));
-    model_fll=glm::rotate(model_fll, glm::radians(joints[front_left_knee]), glm::vec3(0.0, 0.0, 1.0));
-    model_fll = glm::translate(model_fll, glm::vec3(0, -0.8, 0));
-    model_fll = glm::scale(model_fll, glm::vec3(0.5f,1.9f,0.5f));
-    shader.setMat4("model", model_fll);
-    shader.setVec3("partColor", glm::vec3(0.2f,0.6f,0.6f));
-    glDrawArrays(GL_TRIANGLES, 0, 36);
-}
-void frontRightUpperLeg(const ShaderProg &shader)
-{
-    model_fru=glm::translate(model_body, glm::vec3(-1.4f, -0.25f, -0.5f));
-    model_fru=glm::rotate(model_fru, glm::radians(joints[torso_to_front_upper_right_leg]), glm::vec3(0.0, 0.0, 1.0));
-    model_fru = glm::translate(model_fru, glm::vec3(0.0,-1.0, 0.0));
-    model_fru = glm::scale(model_fru, glm::vec3(0.5f,1.5f,0.5f));
-    shader.setMat4("model", model_fru);
-    shader.setVec3("partColor", glm::vec3(0.2f,0.4f,0.5f));
-    glDrawArrays(GL_TRIANGLES, 0, 36);
-}
-void frontRightLowerLeg(const ShaderProg &shader)
-{
-    model_fru = glm::scale(model_fru, glm::vec3(1.0/0.5f,1.0/1.5f,1.0/0.5f));
-    //eliminate the scaler on fru model, since its not uniformly scaled. otherwise, rotation will have weird result
-    glm::mat4 model_frl=glm::translate(model_fru, glm::vec3(0, -0.5, 0));
-    model_frl=glm::rotate(model_frl, glm::radians(joints[front_right_knee]), glm::vec3(0.0, 0.0, 1.0));
-    model_frl = glm::translate(model_frl, glm::vec3(0, -0.8, 0));
-    model_frl = glm::scale(model_frl, glm::vec3(0.5f,1.9f,0.5f));
-    shader.setMat4("model", model_frl);
-    shader.setVec3("partColor", glm::vec3(0.2f,0.6f,0.6f));
-    glDrawArrays(GL_TRIANGLES, 0, 36);
-}
-void backLeftUpperLeg(const ShaderProg &shader)
-{
-    model_blu=glm::translate(model_body, glm::vec3(1.4f, -0.25f, 0.5f));
-    model_blu=glm::rotate(model_blu, glm::radians(joints[torso_to_hind_upper_left_leg]), glm::vec3(0.0, 0.0, 1.0));
-    model_blu = glm::translate(model_blu, glm::vec3(0.0,-1.0, 0.0));
-    model_blu = glm::scale(model_blu, glm::vec3(0.5f,1.5f,0.5f));
-    shader.setMat4("model", model_blu);
-    shader.setVec3("partColor", glm::vec3(0.2f,0.4f,0.5f));
-    glDrawArrays(GL_TRIANGLES, 0, 36);
-}
-void backLeftLowerLeg(const ShaderProg &shader)
-{
-    model_blu = glm::scale(model_blu, glm::vec3(1.0/0.5f,1.0/1.5f,1.0/0.5f));
-    glm::mat4 model_bll=glm::translate(model_blu, glm::vec3(0, -0.5, 0));
-    model_bll=glm::rotate(model_bll, glm::radians(joints[hind_left_knee]), glm::vec3(0.0, 0.0, 1.0));
-    model_bll = glm::translate(model_bll, glm::vec3(0, -0.8, 0));
-    model_bll= glm::scale(model_bll, glm::vec3(0.5f,1.9f,0.5f));
-    shader.setMat4("model",model_bll);
-    shader.setVec3("partColor", glm::vec3(0.2f,0.6f,0.6f));
-    glDrawArrays(GL_TRIANGLES, 0, 36);
-}
-void backRightUpperLeg(const ShaderProg &shader)
-{
-    model_bru=glm::translate(model_body, glm::vec3(1.4f, -0.25f, -0.5f));
-    model_bru=glm::rotate(model_bru, glm::radians(joints[torso_to_hind_upper_right_leg]), glm::vec3(0.0, 0.0, 1.0));
-    model_bru=glm::translate(model_bru, glm::vec3(0.0,-1.0, 0.0));
-    model_bru = glm::scale(model_bru, glm::vec3(0.5f,1.5f,0.5f));
-    shader.setMat4("model", model_bru);
-    shader.setVec3("partColor", glm::vec3(0.2f,0.4f,0.5f));
-    glDrawArrays(GL_TRIANGLES, 0, 36);
-}
-void backRightLowerLeg(const ShaderProg &shader)
-{
-    model_bru = glm::scale(model_bru, glm::vec3(1.0/0.5f,1.0/1.5f,1.0/0.5f));
-    glm::mat4 model_brl=glm::translate(model_bru, glm::vec3(0, -0.5, 0));
-    model_brl=glm::rotate(model_brl, glm::radians(joints[hind_right_knee]), glm::vec3(0.0, 0.0, 1.0));
-    model_brl = glm::translate(model_brl, glm::vec3(0, -0.8, 0));
-    model_brl=glm::scale(model_brl, glm::vec3(0.5f,1.9f,0.5f));
-    shader.setMat4("model", model_brl);
-    shader.setVec3("partColor", glm::vec3(0.2f,0.6f,0.6f));
-    glDrawArrays(GL_TRIANGLES, 0, 36);
-}
-void neck(const ShaderProg &shader)
-{
-    model_neck=glm::translate(model_body, glm::vec3(-1.5, 0.0, 0.0));
-    model_neck=glm::rotate(model_neck, glm::radians(joints[neck_to_torso]), glm::vec3(0.0, 0.0, 1.0));
-    model_neck=glm::translate(model_neck, glm::vec3(-1.25, 0.0, 0.0));
-    model_neck=glm::scale(model_neck,glm::vec3(2.5, 1.0, 0.5));
-    shader.setMat4("model", model_neck);
-    shader.setVec3("partColor", glm::vec3(0.4f,0.2f,0.6f));
-    glDrawArrays(GL_TRIANGLES, 0, 36);
-}
-void head(const ShaderProg &shader)
-{
-    glm::mat4 model_head=glm::translate(model_neck, glm::vec3(0.0, 0.2, 0.0));
-    model_head = glm::rotate(model_head, glm::radians(joints[head_to_neck]), glm::vec3(0.0, 0.0, 1.0));
-    model_head = glm::translate(model_head, glm::vec3(-0.75, 1.0, 0.0));
-    model_head = glm::scale(model_head, glm::vec3(1.5, 0.5, 0.5));
-    shader.setMat4("model", model_head);
-    shader.setVec3("partColor", glm::vec3(0.4f,0.3f,0.3f));
-    glDrawArrays(GL_TRIANGLES, 0, 36);
-}
-
-void run()
-{
-    switch (runStep) {
-        case 1:
-            joints[neck_to_torso]=-43;
-            joints[torso_to_front_upper_left_leg]=0;
-            joints[front_left_knee]=90;
-            joints[torso_to_front_upper_right_leg]=5;
-            joints[front_right_knee]=0;
-            joints[torso_to_hind_upper_left_leg]=60;
-            joints[hind_left_knee]=-70;
-            joints[torso_to_hind_upper_right_leg]=60;
-            joints[hind_right_knee]=-60;
-            break;
-        case 2:
-            joints[neck_to_torso]=-43;
-            joints[torso_to_front_upper_left_leg]=-15;
-            joints[front_left_knee]=70;
-            joints[torso_to_front_upper_right_leg]=20;
-            joints[front_right_knee]=95;
-            joints[torso_to_hind_upper_left_leg]=25;
-            joints[hind_left_knee]=-55;
-            joints[torso_to_hind_upper_right_leg]=-10;
-            joints[hind_right_knee]=-90;
-            break;
-        case 3:
-            joints[neck_to_torso]=-42;
-            joints[torso_to_front_upper_left_leg]=-75;
-            joints[front_left_knee]=35;
-            joints[torso_to_front_upper_right_leg]=-30;
-            joints[front_right_knee]=75;
-            joints[torso_to_hind_upper_left_leg]=-5;
-            joints[hind_left_knee]=-5;
-            joints[torso_to_hind_upper_right_leg]=-15;
-            joints[hind_right_knee]=-25;
-            break;
-        case 4:
-            joints[neck_to_torso]=-41;
-            joints[torso_to_front_upper_left_leg]=-40;
-            joints[front_left_knee]=0;
-            joints[torso_to_front_upper_right_leg]=-50;
-            joints[front_right_knee]=50;
-            joints[torso_to_hind_upper_left_leg]=35;
-            joints[hind_left_knee]=-25;
-            joints[torso_to_hind_upper_right_leg]=10;
-            joints[hind_right_knee]=-30;
-            break;
-        case 5:
-            joints[neck_to_torso]=-40;
-            joints[torso_to_front_upper_left_leg]=-10;
-            joints[front_left_knee]=5;
-            joints[torso_to_front_upper_right_leg]=-40;
-            joints[front_right_knee]=-5;
-            joints[torso_to_hind_upper_left_leg]=45;
-            joints[hind_left_knee]=-5;
-            joints[torso_to_hind_upper_right_leg]=25;
-            joints[hind_right_knee]=-5;
-        case 6:
-            joints[neck_to_torso]=-39;
-            joints[torso_to_front_upper_left_leg]=10;
-            joints[front_left_knee]=0;
-            joints[torso_to_front_upper_right_leg]=-20;
-            joints[front_right_knee]=-5;
-            joints[torso_to_hind_upper_left_leg]=65;
-            joints[hind_left_knee]=-15;
-            joints[torso_to_hind_upper_right_leg]=55;
-            joints[hind_right_knee]=-5;
-            break;
-    }
-}
 
 void window_size_callback(GLFWwindow* window, int width, int height)
 {
@@ -802,18 +514,34 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     if(key==GLFW_KEY_LEFT)//world orientation to right
     {
         worldrotationY+=worldRotateDegree;
+        for(vector<Horse>::iterator it=horseTroop.begin();it!=horseTroop.end();++it)
+        {
+            it->worldrotationY+=worldRotateDegree;
+        }
     }
     if(key==GLFW_KEY_RIGHT)//world orientation to left
     {
         worldrotationY-=worldRotateDegree;
+        for(vector<Horse>::iterator it=horseTroop.begin();it!=horseTroop.end();++it)
+        {
+            it->worldrotationY-=worldRotateDegree;
+        }
     }
     if (key == GLFW_KEY_DOWN)//world orientation Ry
     {
         worldrotationX-=worldRotateDegree;
+        for(vector<Horse>::iterator it=horseTroop.begin();it!=horseTroop.end();++it)
+        {
+            it->worldrotationX-=worldRotateDegree;
+        }
     }
     if (key == GLFW_KEY_UP)//world orientation -Ry
     {
         worldrotationX+=worldRotateDegree;
+        for(vector<Horse>::iterator it=horseTroop.begin();it!=horseTroop.end();++it)
+        {
+            it->worldrotationX+=worldRotateDegree;
+        }
     }
     if(key==GLFW_KEY_TAB)//reset to the initial world position and orientation.because I'm using Mac, which doesn't have "Home" button, I used "tab" instead
     {
@@ -825,33 +553,18 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
         lastX=WIDTH/2.0f;//camera first set to the origin
         lastY=HEIGHT/2.0f;//camera first set to the origin
         fov=45.0f;
-        moveOnX=0;
-        moveOnZ=0;
-        userScale=1.0f;
-        userRotateOnY=0.0f;
-        userRotateOnZ=0.0f;
-        userRotateOnX=0.0f;
-        model=glm::mat4(1.0f);
-        worldrotationY=0.0;
         worldrotationX=0.0;
-        joints[head_to_neck]=100.0;
-        joints[neck_to_torso]=-53.0;
-        joints[torso_to_front_upper_right_leg]=0.0;
-        joints[front_right_knee]=0.0;
-        joints[torso_to_hind_upper_right_leg]=0.0;
-        joints[hind_right_knee]=0.0;
-        joints[torso_to_front_upper_left_leg]=0.0;
-        joints[front_left_knee]=0.0;
-        joints[torso_to_hind_upper_left_leg]=0.0;
-        joints[hind_left_knee]=0.0;
-        isRunning=false;
+        for(vector<Horse>::iterator it=horseTroop.begin();it!=horseTroop.end();++it)
+        {
+            it->worldrotationX=0.0;
+        }
+        worldrotationY=0.0;
+        for(vector<Horse>::iterator it=horseTroop.begin();it!=horseTroop.end();++it)
+        {
+            it->worldrotationY=0.0;
+        }
     }
-    if(key==GLFW_KEY_SPACE&& action == GLFW_PRESS)//randomly change the position of the horse on the grid
-    {
-        //generating random location in the grid
-        moveOnX=minMove + static_cast <float> (rand()) /( static_cast <float> (RAND_MAX/(maxMove-minMove)));
-        moveOnZ=minMove + static_cast <float> (rand()) /( static_cast <float> (RAND_MAX/(maxMove-minMove)));
-    }
+    /*
     if(key==GLFW_KEY_U&&action==GLFW_PRESS)//scale up
     {
         userScale+=0.5;
@@ -907,6 +620,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
             userRotateOnZ+=5.0f;
         }
     }
+     */
     if(key==GLFW_KEY_P&&action==GLFW_PRESS)
     {
         glPointSize(10.0f);//make the points more visible
@@ -933,6 +647,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
         if(shadowOn==false){shadowOn=true;}
         else{shadowOn=false;}
     }
+    /*can be change later to move the joint of random horse
     if(key==GLFW_KEY_0&&action==GLFW_PRESS)
     {
         if (mode == GLFW_MOD_SHIFT) {joints[0]+=5.0f;}
@@ -983,16 +698,25 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
         if (mode == GLFW_MOD_SHIFT) {joints[9]+=5.0f;}
         else{joints[9]-=5.0f;}
     }
+    */
     
     if(key==GLFW_KEY_R&&action==GLFW_PRESS)
     {
-        if(isRunning) {isRunning = false;}
-        else{isRunning = true;}
+        for(vector<Horse>::iterator it=horseTroop.begin();it!=horseTroop.end();++it)
+        {
+            if(it->isRunning==false)
+                it->isRunning=true;
+            else
+                it->isRunning=false;
+        }
     }
+    
+    /*
     if(key==GLFW_KEY_N&&action==GLFW_PRESS)//debuging rotation on X
     {userRotateOnX+=5.0f;}
     if(key==GLFW_KEY_M&&action==GLFW_PRESS)//debuging rotation on X
     {userRotateOnX-=5.0f;}
+     */
 }
 
 //call back funtion for mouse button and movement
