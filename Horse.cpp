@@ -7,19 +7,21 @@
 //
 
 #include "Horse.h"
+#include <iostream>
 //glm
 #include </usr/local/Cellar/glm/0.9.8.5/include/glm/glm.hpp>
 #include </usr/local/Cellar/glm/0.9.8.5/include/glm/gtc/matrix_transform.hpp>
 #include </usr/local/Cellar/glm/0.9.8.5/include/glm/gtc/type_ptr.hpp>
 
 
-Horse::Horse(float moveOnX,float moveOnZ,float userRotateOnY,float userScale):
-moveOnX(moveOnX),moveOnZ(moveOnZ),userRotateOnY(userRotateOnY),userScale(userScale)
+Horse::Horse(float originalPosX,float originalPosZ,float originalRotate,float userScale):
+originalPosOnX(originalPosX),originalPosOnZ(originalPosZ),originalRotation(originalRotate),userScale(userScale)
 {}
 
 
-void Horse::drawHorse(const ShaderProg &shader,float moveOnX,float moveOnZ,float userRotateOnY,float userScale,float worldrotationX,float worldrotationY)
+void Horse::drawHorse(const ShaderProg &shader,float rotateOnY,float moveLength,float userScale,float worldrotationX,float worldrotationY)
 {
+    
     if(isRunning)
     {
         run();
@@ -31,7 +33,8 @@ void Horse::drawHorse(const ShaderProg &shader,float moveOnX,float moveOnZ,float
             runStep = 1;
         }
     }
-    body(shader,moveOnX,moveOnZ,userRotateOnY,userScale,worldrotationX,worldrotationY);
+    
+    body(shader,rotateOnY,moveLength,userScale,worldrotationX,worldrotationY);
     model_body=glm::scale(model_body, glm::vec3(1.0f/4.0f,1.0f/1.5f,1.0f/2.0f));
     //eliminate the scaler on body model, since its not uniformly scaled. otherwise, rotation will have weird result
     neck(shader);
@@ -55,17 +58,17 @@ void Horse::drawHorse(const ShaderProg &shader,float moveOnX,float moveOnZ,float
     model_blu=glm::mat4(1.0f);
 }
 
-void Horse::body(const ShaderProg &shader,float moveOnX,float moveOnZ,float userRotateOnY,float userScale,float worldrotationX,float worldrotationY)
+void Horse::body(const ShaderProg &shader,float rotateOnY,float moveLength,float userScale,float worldrotationX,float worldrotationY)
 {
     model_body=glm::rotate(model_body, glm::radians(worldrotationX), glm::vec3(1.0,0.0,0.0));
     model_body=glm::rotate(model_body, glm::radians(worldrotationY), glm::vec3(0.0,1.0,0.0));
+    model_body=glm::translate(model_body, glm::vec3(originalPosOnX,0.0,originalPosOnZ));
     //model_body=glm::rotate(model_body, glm::radians(userRotateOnZ), glm::vec3(0.0f,0.0f,1.0f));
-    model_body=glm::rotate(model_body, glm::radians(userRotateOnY), glm::vec3(0.0f,1.0f,0.0f));
+    model_body=glm::rotate(model_body, glm::radians(rotateOnY), glm::vec3(0.0f,1.0f,0.0f));
     //model_body=glm::rotate(model_body, glm::radians(userRotateOnX), glm::vec3(1.0f,0.0f,0.0f));
     model_body=glm::scale(model_body, glm::vec3(userScale,userScale,userScale));
-    model_body=glm::translate(model_body, glm::vec3(moveOnX,bodyPosition[1],moveOnZ));
+    model_body=glm::translate(model_body, bodyPosition);
     model_body=glm::scale(model_body, glm::vec3(4.0f,1.5f,2.0f));
-    
     /*
      model_body=glm::translate(model_base, glm::vec3(bodyPosition[0]+moveOnX,bodyPosition[1],bodyPosition[2]+moveOnZ));
      model_body=glm::scale(model_body, glm::vec3(4.0f*userScale,2.5f*userScale,1.0f*userScale));
@@ -256,5 +259,20 @@ void Horse::run()
             joints[torso_to_hind_upper_right_leg]=55;
             joints[hind_right_knee]=-5;
             break;
+    }
+}
+
+
+void Horse::move(float moveLength)
+{
+    if(canMove)
+    {
+        isRunning=true;
+        originalPosOnX=originalPosOnX-moveLength*glm::cos(glm::radians(originalRotation+userRotateOnY));
+        originalPosOnZ=originalPosOnZ+moveLength*glm::sin(glm::radians(originalRotation+userRotateOnY));
+    }
+    else
+    {
+        isRunning=false;
     }
 }

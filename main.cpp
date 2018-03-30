@@ -11,7 +11,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 #include <vector>
-#include "AABBCollider.h"
+//#include "OBBCollider.h"
 #include "Horse.h"
 
 // GLEW
@@ -94,8 +94,7 @@ void mouse_callback(GLFWwindow* window, double xPos, double yPos);
 unsigned int loadTexture(string fileName);
 
 //-----------random number generator----------
-vector<float> genRandomMoveOnX(int number=troopSize);
-vector<float> genRandomMoveOnZ(int number=troopSize);
+vector<float> genRandomMove(int number=troopSize);
 vector<float> genRandomRotationOnY(int number=troopSize);
 
 //***********************************************
@@ -308,12 +307,12 @@ int main() {
     groundShader.setInt("shadowMap", 1);
     
     //troop values;
-    vector<float> randomMovesOnX=genRandomMoveOnX(troopSize);
-    vector<float> randomMovesOnZ=genRandomMoveOnZ(troopSize);
-    vector<float> randomRotations=genRandomRotationOnY(troopSize);
+    vector<float> originalPositionOnX=genRandomMove(troopSize);
+    vector<float> originalPositionOnZ=genRandomMove(troopSize);
+    vector<float> originalRotations=genRandomRotationOnY(troopSize);
     for(int i=0;i<troopSize;i++)
     {
-        horseTroop.push_back(Horse(randomMovesOnX[i],randomMovesOnZ[i],randomRotations[i]));
+        horseTroop.push_back(Horse(originalPositionOnX[i],originalPositionOnZ[i],originalRotations[i]));
     }
     
     //game loop
@@ -356,10 +355,13 @@ int main() {
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, horseTexture);
         
+        /*
         for(vector<Horse>::iterator it=horseTroop.begin();it!=horseTroop.end();++it)
         {
-            it->drawHorse(simpleDepthShder,it->moveOnX,it->moveOnZ,it->userRotateOnY,it->userScale,it->worldrotationX,it->worldrotationY);
+            it->drawHorse(simpleDepthShder,(it->originalPosOnX+it->moveOnX),(it->originalPosOnZ+it->moveOnZ),(it->originalRotation+it->userRotateOnY),it->userScale,it->worldrotationX,it->worldrotationY);
         }
+         */
+         horseTroop[0].drawHorse(simpleDepthShder,horseTroop[0].originalRotation+horseTroop[0].userRotateOnY,horseTroop[0].moveSteps,horseTroop[0].userScale,horseTroop[0].worldrotationX,horseTroop[0].worldrotationY);
         
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         
@@ -477,10 +479,17 @@ int main() {
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, depthMap);
         
+        /*
         for(vector<Horse>::iterator it=horseTroop.begin();it!=horseTroop.end();++it)
         {
-            it->drawHorse(horseShader,it->moveOnX,it->moveOnZ,it->userRotateOnY,it->userScale,it->worldrotationX,it->worldrotationY);
+            it->drawHorse(horseShader,(it->originalPosOnX+it->moveOnX),(it->originalPosOnZ+it->moveOnZ),(it->originalRotation+it->userRotateOnY),it->userScale,it->worldrotationX,it->worldrotationY);
+//            cout<<it->originalRotation+it->userRotateOnY<<endl;
+//            cout<<it->worldrotationX<<endl;
+//            cout<<it->worldrotationY<<endl;
         }
+        cout<<endl;
+         */
+        horseTroop[0].drawHorse(horseShader,horseTroop[0].originalRotation+horseTroop[0].userRotateOnY,horseTroop[0].moveSteps,horseTroop[0].userScale,horseTroop[0].worldrotationX,horseTroop[0].worldrotationY);
         
         
         glfwSwapBuffers(window);
@@ -573,19 +582,27 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     {
         userScale-=0.5;
     }
+     */
     if(key==GLFW_KEY_A&&action==GLFW_PRESS)
     {
         if (mode == GLFW_MOD_SHIFT)//move to left by 1 unit grid
         {
-            //uppercase
-            moveOnX+=-1.0f;
+            for(vector<Horse>::iterator it=horseTroop.begin();it!=horseTroop.end();++it)
+            {
+                it->move(1.0);
+            }
         }
         else //rotate to left by 5 degrees related to y axis
         {
             //lowercase
-            userRotateOnY+=5.0f;
+            horseTroop[1].userRotateOnY+=5.0;
+            horseTroop[0].userRotateOnY-=5.0;
+            horseTroop[2].userRotateOnY+=10.0;
+            horseTroop[3].userRotateOnY-=10.0;
+            //cout<<endl;
         }
     }
+    /*
     if(key==GLFW_KEY_D&&action==GLFW_PRESS)
     {
         if (mode == GLFW_MOD_SHIFT) {////move to right by 1 unit grid
@@ -620,7 +637,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
             userRotateOnZ+=5.0f;
         }
     }
-     */
+    */
     if(key==GLFW_KEY_P&&action==GLFW_PRESS)
     {
         glPointSize(10.0f);//make the points more visible
@@ -809,7 +826,7 @@ unsigned int loadTexture(string fileName)
     return texture;
 }
 
-vector<float> genRandomMoveOnX(int number)
+vector<float> genRandomMove(int number)
 {
     vector<float> result;
     float random;
@@ -820,17 +837,7 @@ vector<float> genRandomMoveOnX(int number)
     }
     return result;
 }
-vector<float> genRandomMoveOnZ(int number)
-{
-    vector<float> result;
-    float random;
-    for(int i=0;i<number;i++)
-    {
-        random=minMove + static_cast <float> (rand()) /( static_cast <float> (RAND_MAX/(maxMove-minMove)));
-        result.push_back(random);
-    }
-    return result;
-}
+
 vector<float> genRandomRotationOnY(int number)
 {
     vector<float> result;

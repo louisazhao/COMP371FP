@@ -10,6 +10,7 @@
 #define Horse_h
 
 #include "ShaderProg.h"
+#include "OBBCollider.h"
 
 enum
 {
@@ -43,12 +44,13 @@ public:
     //-----------------horse joints--------------
     float joints[10]={100.0,-53.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0};
     //-----------------horse movements--------------
+    float originalPosOnX=0.0, originalPosOnZ=0.0,originalRotation=0.0;
     float moveOnX=0,moveOnZ=0;
-    const float minMove=-30.0f,maxMove=30.0f;
+    //const float minMove=-30.0f,maxMove=30.0f;
     float userScale=1.0f;
     float userRotateOnY=0.0f;
-    float userRotateOnZ=0.0f;
-    float userRotateOnX=0.0f;
+    //float userRotateOnZ=0.0f;
+    //float userRotateOnX=0.0f;
     int runStep=1;
     bool isRunning=false;
     int timeInterval=0;
@@ -56,13 +58,14 @@ public:
     bool canMove=true;
     float worldrotationX=0.0f;
     float worldrotationY=0.0f;
+    float moveSteps;
     
-    Horse(float moveOnX=0,float moveOnZ=0,float userRotateOnY=0.0,float userScale=1.0);
+    Horse(float originalPosX,float originalPosZ,float originalRotate,float userScale=1.0);
     
     
     //------------draw horse functions---------------
-    void drawHorse(const ShaderProg &shader,float moveOnX=0,float moveOnZ=0,float userRotateOnY=0.0,float userScale=1.0,float worldrotationX=0.0f,float worldrotationY=0.0f);
-    void body(const ShaderProg &shader,float moveOnX=0,float moveOnZ=0,float userRotateOnY=0.0,float userScale=1.0,float worldrotationX=0.0f,float worldrotationY=0.0f);
+    void drawHorse(const ShaderProg &shader,float rotateOnY,float moveLength,float userScale=1.0,float worldrotationX=0.0f,float worldrotationY=0.0f);
+    void body(const ShaderProg &shader,float rotateOnY,float moveLength,float userScale=1.0,float worldrotationX=0.0f,float worldrotationY=0.0f);
     void frontLeftUpperLeg(const ShaderProg &shader);
     void frontLeftLowerLeg(const ShaderProg &shader);
     void frontRightUpperLeg(const ShaderProg &shader);
@@ -74,6 +77,7 @@ public:
     void neck(const ShaderProg &shader);
     void head(const ShaderProg &shader);
     void run();
+    void move(float moveLength);
 };
 
 #endif /* Horse_h */
