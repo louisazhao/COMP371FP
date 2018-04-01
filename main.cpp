@@ -39,7 +39,7 @@ GLFWwindow* window;
 
 //-----------------horse variables--------------
 //-----------------------------------------------
-const float minMove=-30.0f,maxMove=30.0f;
+const float minMove=-45.0f,maxMove=45.0f;
 const int troopSize=20;
 vector<Horse> horseTroop;
 
@@ -355,13 +355,18 @@ int main() {
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, horseTexture);
         
-        /*
+        
         for(vector<Horse>::iterator it=horseTroop.begin();it!=horseTroop.end();++it)
         {
-            it->drawHorse(simpleDepthShder,(it->originalPosOnX+it->moveOnX),(it->originalPosOnZ+it->moveOnZ),(it->originalRotation+it->userRotateOnY),it->userScale,it->worldrotationX,it->worldrotationY);
+            it->drawHorse(simpleDepthShder,(it->originalRotation+it->userRotateOnY),it->moveLength,it->userScale,it->worldrotationX,it->worldrotationY);
         }
-         */
-         horseTroop[0].drawHorse(simpleDepthShder,horseTroop[0].originalRotation+horseTroop[0].userRotateOnY,horseTroop[0].moveSteps,horseTroop[0].userScale,horseTroop[0].worldrotationX,horseTroop[0].worldrotationY);
+        
+   /* horseTroop[0].drawHorse(simpleDepthShder,horseTroop[0].originalRotation+horseTroop[0].userRotateOnY,horseTroop[0].moveLength,horseTroop[0].userScale,horseTroop[0].worldrotationX,horseTroop[0].worldrotationY);
+    horseTroop[1].drawHorse(simpleDepthShder,horseTroop[1].originalRotation+horseTroop[1].userRotateOnY,horseTroop[1].moveLength,horseTroop[1].userScale,horseTroop[1].worldrotationX,horseTroop[1].worldrotationY);
+    horseTroop[2].drawHorse(simpleDepthShder,horseTroop[2].originalRotation+horseTroop[2].userRotateOnY,horseTroop[2].moveLength,horseTroop[2].userScale,horseTroop[2].worldrotationX,horseTroop[2].worldrotationY);
+        
+    horseTroop[3].drawHorse(simpleDepthShder,horseTroop[3].originalRotation+horseTroop[3].userRotateOnY,horseTroop[3].moveLength,horseTroop[3].userScale,horseTroop[3].worldrotationX,horseTroop[3].worldrotationY);
+    */
         
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         
@@ -478,18 +483,22 @@ int main() {
         glBindTexture(GL_TEXTURE_2D, horseTexture);
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, depthMap);
+    
         
-        /*
         for(vector<Horse>::iterator it=horseTroop.begin();it!=horseTroop.end();++it)
         {
-            it->drawHorse(horseShader,(it->originalPosOnX+it->moveOnX),(it->originalPosOnZ+it->moveOnZ),(it->originalRotation+it->userRotateOnY),it->userScale,it->worldrotationX,it->worldrotationY);
-//            cout<<it->originalRotation+it->userRotateOnY<<endl;
-//            cout<<it->worldrotationX<<endl;
-//            cout<<it->worldrotationY<<endl;
+            it->drawHorse(horseShader,(it->originalRotation+it->userRotateOnY),it->moveLength,it->userScale,it->worldrotationX,it->worldrotationY);
         }
-        cout<<endl;
-         */
-        horseTroop[0].drawHorse(horseShader,horseTroop[0].originalRotation+horseTroop[0].userRotateOnY,horseTroop[0].moveSteps,horseTroop[0].userScale,horseTroop[0].worldrotationX,horseTroop[0].worldrotationY);
+        
+   
+   /* horseTroop[0].drawHorse(horseShader,horseTroop[0].originalRotation+horseTroop[0].userRotateOnY,horseTroop[0].moveLength,horseTroop[0].userScale,horseTroop[0].worldrotationX,horseTroop[0].worldrotationY);
+    horseTroop[1].drawHorse(horseShader,horseTroop[1].originalRotation+horseTroop[1].userRotateOnY,horseTroop[1].moveLength,horseTroop[1].userScale,horseTroop[1].worldrotationX,horseTroop[1].worldrotationY);
+    horseTroop[2].drawHorse(horseShader,horseTroop[2].originalRotation+horseTroop[2].userRotateOnY,horseTroop[2].moveLength,horseTroop[2].userScale,horseTroop[2].worldrotationX,horseTroop[2].worldrotationY);
+        
+    horseTroop[3].drawHorse(horseShader,horseTroop[3].originalRotation+horseTroop[3].userRotateOnY,horseTroop[3].moveLength,horseTroop[3].userScale,horseTroop[3].worldrotationX,horseTroop[3].worldrotationY);
+    */
+        
+    
         
         
         glfwSwapBuffers(window);
@@ -589,17 +598,15 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
         {
             for(vector<Horse>::iterator it=horseTroop.begin();it!=horseTroop.end();++it)
             {
-                it->move(1.0);
+                it->move(35,1.0);
             }
         }
         else //rotate to left by 5 degrees related to y axis
         {
-            //lowercase
-            horseTroop[1].userRotateOnY+=5.0;
-            horseTroop[0].userRotateOnY-=5.0;
-            horseTroop[2].userRotateOnY+=10.0;
-            horseTroop[3].userRotateOnY-=10.0;
-            //cout<<endl;
+            for(vector<Horse>::iterator it=horseTroop.begin();it!=horseTroop.end();++it)
+            {
+                it->userRotateOnY+=5.0;
+            }
         }
     }
     /*
@@ -728,12 +735,86 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
         }
     }
     
-    /*
-    if(key==GLFW_KEY_N&&action==GLFW_PRESS)//debuging rotation on X
-    {userRotateOnX+=5.0f;}
-    if(key==GLFW_KEY_M&&action==GLFW_PRESS)//debuging rotation on X
-    {userRotateOnX-=5.0f;}
-     */
+    if(key==GLFW_KEY_H&&action==GLFW_PRESS)
+    {
+        float randomStep;
+        vector<float> angles={-15,15};
+        int randomDirection;
+        int randomStop=rand()%2;
+        
+        for(int i=0;i<horseTroop.size();++i)
+        {
+            randomStep=rand()%5+1;
+            randomDirection=rand()%2;
+            horseTroop[i].move(angles[randomDirection], randomStep);
+        }
+        
+        for(int i=0;i<horseTroop.size();i++)
+        {
+            for(int j=i+1;j<horseTroop.size();++j)
+            {
+                if(horseTroop[i].collider.inRange(horseTroop[j].collider)&&horseTroop[i].canMove!=false&&horseTroop[j].canMove!=false)
+                {
+                    if(randomStop==0)
+                    {
+                        horseTroop[i].canMove=false;
+                    }
+                    else
+                    {
+                        horseTroop[j].canMove=false;
+                    }
+                }
+            }
+        }
+ 
+        
+        
+        /*
+        randomStep=rand()%5+1;
+        randomDirection=rand()%2;
+        horseTroop[0].move(angles[randomDirection], randomStep);
+        horseTroop[0].collider.getRangeOnBothAxis();
+        cout<<"first horse"<<endl;
+        horseTroop[0].collider.coutInfor();
+        
+        randomStep=rand()%5+1;
+        randomDirection=rand()%2;
+        horseTroop[1].move(angles[randomDirection],randomStep);
+        horseTroop[1].collider.getRangeOnBothAxis();
+        cout<<"second horse"<<endl;
+        horseTroop[1].collider.coutInfor();
+        
+        randomStep=rand()%5+1;
+        randomDirection=rand()%2;
+        horseTroop[2].move(angles[randomDirection],randomStep);
+        horseTroop[2].collider.getRangeOnBothAxis();
+        cout<<"third horse"<<endl;
+        horseTroop[2].collider.coutInfor();
+        
+        randomStep=rand()%5+1;
+        randomDirection=rand()%2;
+        horseTroop[3].move(angles[randomDirection],randomStep);
+        horseTroop[3].collider.getRangeOnBothAxis();
+        cout<<"forth horse"<<endl;
+        horseTroop[3].collider.coutInfor();
+        
+        cout<<"first and second "<<horseTroop[0].collider.collisionOnX(horseTroop[1].collider)<<" "<<horseTroop[0].collider.collisionOnZ(horseTroop[1].collider)<<" "<<horseTroop[0].collider.inRange(horseTroop[1].collider)<<endl;
+        
+        cout<<"first and third "<<horseTroop[0].collider.collisionOnX(horseTroop[2].collider)<<" "<<horseTroop[0].collider.collisionOnZ(horseTroop[2].collider)<<" "<<horseTroop[0].collider.inRange(horseTroop[2].collider)<<endl;
+        
+        cout<<"first and forth "<<horseTroop[0].collider.collisionOnX(horseTroop[3].collider)<<" "<<horseTroop[0].collider.collisionOnZ(horseTroop[3].collider)<<" "<<horseTroop[0].collider.inRange(horseTroop[3].collider)<<endl;
+        
+        cout<<"second and third "<<horseTroop[1].collider.collisionOnX(horseTroop[2].collider)<<" "<<horseTroop[1].collider.collisionOnZ(horseTroop[2].collider)<<" "<<horseTroop[1].collider.inRange(horseTroop[2].collider)<<endl;
+        
+        cout<<"second and forth "<<horseTroop[1].collider.collisionOnX(horseTroop[3].collider)<<" "<<horseTroop[1].collider.collisionOnZ(horseTroop[3].collider)<<" "<<horseTroop[1].collider.inRange(horseTroop[3].collider)<<endl;
+        
+        cout<<"third and forth "<<horseTroop[2].collider.collisionOnX(horseTroop[3].collider)<<" "<<horseTroop[2].collider.collisionOnZ(horseTroop[3].collider)<<" "<<horseTroop[2].collider.inRange(horseTroop[3].collider)<<endl;
+        if(horseTroop[0].collider.inRange(horseTroop[1].collider))
+        {
+            horseTroop[0].canMove=false;
+        }
+         */
+    }
 }
 
 //call back funtion for mouse button and movement

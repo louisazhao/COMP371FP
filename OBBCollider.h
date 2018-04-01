@@ -12,20 +12,37 @@
 //glm
 #include </usr/local/Cellar/glm/0.9.8.5/include/glm/glm.hpp>
 #include <string>
+#include <iostream>
 
 class OBBCollider{
 private:
-    glm::vec3 center;
+    glm::vec2 center;
     float scale;
     float lengthOfTheBody;
     float widthOfTheBody;
+    float originalRotation;
+    float addedRotation=0.0;
+    //helper functions
+    float calculateR() const;
+  
+    glm::vec2 calculateUpperRight();
+    glm::vec2 calculateUpperLeft();
+    glm::vec2 calculateLowerRight();
+    glm::vec2 calculateLowerLeft();
+    float angleAlfa();
+    //void getRangeOnBothAxis();
 public:
-    
-    OBBCollider(const glm::vec3& origin,float length=6.0, float width=2.0, float userScale=1.0);//default value is the size for the box collider of a horse
-    float calculateLength() const;
-    bool inRange(const OBBCollider& other) const;
-    glm::vec3 getCenter() const;
+    void getRangeOnBothAxis();
+    bool collisionOnX(const OBBCollider& other) const;
+    bool collisionOnZ(const OBBCollider& other) const;
+    float minRangeOnX,maxRangeOnX,minRangeOnZ,maxRangeOnZ;
+    OBBCollider(float originX,float originZ,float originRotate,float length=7, float width=3, float userScale=1.0);//default value is the size for the box collider of a horse
+    bool inRange(const OBBCollider& other);
+    glm::vec2 getCenter() const;
     void updateCenter(float x, float z);
+    void updateAddedRotation(float x);
+    void coutInfor() const;
+
 };
 
 

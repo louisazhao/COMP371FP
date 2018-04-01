@@ -16,7 +16,12 @@
 
 Horse::Horse(float originalPosX,float originalPosZ,float originalRotate,float userScale):
 originalPosOnX(originalPosX),originalPosOnZ(originalPosZ),originalRotation(originalRotate),userScale(userScale)
-{}
+{
+    //collider=OBBCollider(originalPosOnX,originalPosOnZ,originalRotation,6.0,2.0,userScale);
+    collider.updateCenter(originalPosOnX, originalPosOnZ);
+    collider.updateAddedRotation(userRotateOnY);
+}
+
 
 
 void Horse::drawHorse(const ShaderProg &shader,float rotateOnY,float moveLength,float userScale,float worldrotationX,float worldrotationY)
@@ -263,16 +268,26 @@ void Horse::run()
 }
 
 
-void Horse::move(float moveLength)
+void Horse::move(float userRotation,float moveLength)
 {
     if(canMove)
     {
         isRunning=true;
-        originalPosOnX=originalPosOnX-moveLength*glm::cos(glm::radians(originalRotation+userRotateOnY));
-        originalPosOnZ=originalPosOnZ+moveLength*glm::sin(glm::radians(originalRotation+userRotateOnY));
+        userRotateOnY+=userRotation;
+        float potentialX=originalPosOnX-moveLength*glm::cos(glm::radians(originalRotation+userRotateOnY));
+        float potentialZ=originalPosOnZ+moveLength*glm::sin(glm::radians(originalRotation+userRotateOnY));
+        if(potentialX>=-45&&potentialX<=45&&potentialZ>=-45&&potentialZ<=45)
+        {
+            originalPosOnX=potentialX;
+            originalPosOnZ=potentialZ;
+        }
+        collider.updateCenter(originalPosOnX, originalPosOnZ);
+        collider.updateAddedRotation(userRotateOnY);
     }
     else
     {
         isRunning=false;
+        userRotateOnY=0;
     }
 }
+

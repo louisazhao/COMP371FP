@@ -11,6 +11,7 @@
 
 #include "ShaderProg.h"
 #include "OBBCollider.h"
+#include <vector>
 
 enum
 {
@@ -45,7 +46,6 @@ public:
     float joints[10]={100.0,-53.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0};
     //-----------------horse movements--------------
     float originalPosOnX=0.0, originalPosOnZ=0.0,originalRotation=0.0;
-    float moveOnX=0,moveOnZ=0;
     //const float minMove=-30.0f,maxMove=30.0f;
     float userScale=1.0f;
     float userRotateOnY=0.0f;
@@ -58,10 +58,10 @@ public:
     bool canMove=true;
     float worldrotationX=0.0f;
     float worldrotationY=0.0f;
-    float moveSteps;
+    float moveLength;
+    OBBCollider collider=OBBCollider(originalPosOnX,originalPosOnZ,originalRotation,8,4,userScale);
     
     Horse(float originalPosX,float originalPosZ,float originalRotate,float userScale=1.0);
-    
     
     //------------draw horse functions---------------
     void drawHorse(const ShaderProg &shader,float rotateOnY,float moveLength,float userScale=1.0,float worldrotationX=0.0f,float worldrotationY=0.0f);
@@ -77,7 +77,7 @@ public:
     void neck(const ShaderProg &shader);
     void head(const ShaderProg &shader);
     void run();
-    void move(float moveLength);
+    void move(float userRotation,float moveLength);
 };
 
 #endif /* Horse_h */
