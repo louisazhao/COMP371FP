@@ -59,6 +59,7 @@ public:
     float worldrotationX=0.0f;
     float worldrotationY=0.0f;
     float moveLength;
+    float bounceDis=-5.0f;
     OBBCollider collider=OBBCollider(originalPosOnX,originalPosOnZ,originalRotation,8,4,userScale);
     
     Horse(float originalPosX,float originalPosZ,float originalRotate,float userScale=1.0);
@@ -78,6 +79,8 @@ public:
     void head(const ShaderProg &shader);
     void run();
     void move(float userRotation,float moveLength);
+    void bounceAway();
+    void resetJoints();
 };
 
 #endif /* Horse_h */

@@ -74,15 +74,6 @@ void Horse::body(const ShaderProg &shader,float rotateOnY,float moveLength,float
     model_body=glm::scale(model_body, glm::vec3(userScale,userScale,userScale));
     model_body=glm::translate(model_body, bodyPosition);
     model_body=glm::scale(model_body, glm::vec3(4.0f,1.5f,2.0f));
-    /*
-     model_body=glm::translate(model_base, glm::vec3(bodyPosition[0]+moveOnX,bodyPosition[1],bodyPosition[2]+moveOnZ));
-     model_body=glm::scale(model_body, glm::vec3(4.0f*userScale,2.5f*userScale,1.0f*userScale));
-     model_body=glm::rotate(model_body, glm::radians(userRotateOnZ), glm::vec3(0.0f,0.0f,1.0f));
-     model_body=glm::rotate(model_body, glm::radians(userRotateOnY), glm::vec3(0.0f,1.0f,0.0f));
-     model_body=glm::rotate(model_body, glm::radians(userRotateOnX), glm::vec3(1.0f,0.0f,0.0f));
-     model_body=glm::rotate(model_body, glm::radians(worldrotationX), glm::vec3(1.0,0.0,0.0));
-     model_body=glm::rotate(model_body, glm::radians(worldrotationY), glm::vec3(0.0,1.0,0.0));
-     */
     shader.setMat4("model", model_body);
     shader.setVec3("partColor", glm::vec3(0.2f,0.2f,0.1f));
     glDrawArrays(GL_TRIANGLES, 0, 36);
@@ -276,7 +267,7 @@ void Horse::move(float userRotation,float moveLength)
         userRotateOnY+=userRotation;
         float potentialX=originalPosOnX-moveLength*glm::cos(glm::radians(originalRotation+userRotateOnY));
         float potentialZ=originalPosOnZ+moveLength*glm::sin(glm::radians(originalRotation+userRotateOnY));
-        if(potentialX>=-45&&potentialX<=45&&potentialZ>=-45&&potentialZ<=45)
+        if(potentialX>=-45&&potentialX<=45&&potentialZ>=-45&&potentialZ<=45)//bound check
         {
             originalPosOnX=potentialX;
             originalPosOnZ=potentialZ;
@@ -286,8 +277,36 @@ void Horse::move(float userRotation,float moveLength)
     }
     else
     {
-        isRunning=false;
-        userRotateOnY=0;
+        isRunning=false;//stop animation
+        resetJoints();
+        userRotateOnY+=0;//no more rotation
     }
+}
+
+void Horse::bounceAway()
+{
+    float potentialX=originalPosOnX-bounceDis*glm::cos(glm::radians(originalRotation+userRotateOnY));
+    float potentialZ=originalPosOnZ+bounceDis*glm::sin(glm::radians(originalRotation+userRotateOnY));
+    if(potentialX>=-45&&potentialX<=45&&potentialZ>=-45&&potentialZ<=45)
+    {
+        originalPosOnX=potentialX;
+        originalPosOnZ=potentialZ;
+    }
+    collider.updateCenter(originalPosOnX, originalPosOnZ);
+    collider.updateAddedRotation(userRotateOnY);
+}
+
+void Horse::resetJoints()
+{
+    joints[0]=100.0;
+    joints[1]=-53.0;
+    joints[2]=0.0;
+    joints[3]=0.0;
+    joints[4]=0.0;
+    joints[5]=0.0;
+    joints[6]=0.0;
+    joints[7]=0.0;
+    joints[8]=0.0;
+    joints[9]=0.0;
 }
 
