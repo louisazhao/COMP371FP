@@ -42,6 +42,9 @@ GLFWwindow* window;
 const float minMove=-45.0f,maxMove=45.0f;
 const int troopSize=20;
 vector<Horse> horseTroop;
+vector<float> originalPositionOnX;
+vector<float> originalPositionOnZ;
+vector<float> originalRotations;
 
 
 //----------world and camera variables-----------
@@ -145,12 +148,22 @@ int main() {
     //enable z-bufferr
     glEnable(GL_DEPTH_TEST);
     
-    //shaders
+    
+    //***********************************************
+    //**               shader program              **
+    //***********************************************
+    
     ShaderProg groundShader("objectvs.vs","objectfs.fs");//shader program for ground
     ShaderProg horseShader("objectvs.vs","objectfs.fs");//shader program for horse
     ShaderProg coordinateShader("coordinatevs.vs","coordinatefs.fs");//shader program for coordinate
     ShaderProg lightShader("lightvs.vs","lightfs.fs");//light shader
     ShaderProg simpleDepthShder("DepthMap.vs","DepthMap.fs");//depth map shader
+    ShaderProg skyboxShader("skyboxvs.vs","skyboxfs.fs");//skybox
+    
+    
+    //***********************************************
+    //**               vertices                    **
+    //***********************************************
     
     //vertices for ground
     float planeVertices[] = {
@@ -223,9 +236,14 @@ int main() {
     };
     
     
+    //***********************************************
+    //**               VAO & VBO                   **
+    //***********************************************
+
+    
     //VAO
-    GLuint VAOs[4], VBOs[3];
-    glGenVertexArrays(4,VAOs);
+    GLuint VAOs[5], VBOs[3];
+    glGenVertexArrays(5,VAOs);
     glGenBuffers(3,VBOs);
     
     //ground
@@ -273,14 +291,53 @@ int main() {
     glEnableVertexAttribArray(0);
     glBindVertexArray(0);
     
+    //skybox
+    glBindVertexArray(VAOs[4]);
+    glBindBuffer(GL_ARRAY_BUFFER,VBOs[2]);
+    glBufferData(GL_ARRAY_BUFFER,sizeof(vertices),vertices,GL_STATIC_DRAW);
+    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,8*sizeof(GLfloat),(GLvoid*)0);
+    glEnableVertexAttribArray(0);
+    glBindVertexArray(0);
+    
+    
+    //***********************************************
+    //**               textures                    **
+    //***********************************************
+    
     unsigned int grassTexture=loadTexture("grass.jpg");
     unsigned int woodTexture=loadTexture("woodTex.jpg");
     unsigned int brickTexture=loadTexture("brick.jpg");
     unsigned int metalTexture=loadTexture("metal.jpg");
     unsigned int patteredTexture=loadTexture("pattern.jpg");
+    
+    //-----------sky box texture--------------
+    vector<std::string> faces={
+        "left.jpg",
+        "right.jpg",
+        "top.jpg",
+        "bottom.jpg",
+        "front.jpg",
+        "back.jpg"
+    };
+    int x, y, comp;
+    unsigned char* data;
+    GLuint skyboxTexture;
+    glGenTextures(1, &skyboxTexture);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxTexture);
+    
+    for(int i=0;i<6;i++)
+    {
+        data=stbi_load(faces[i].c_str(),&x,&y,&comp,0);
+        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X+i, 0, GL_RGB, x, y, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+    }
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    stbi_image_free(data);
+    
+    //***********************************************
+    //**               Depth Map                   **
+    //***********************************************
    
-    // configure depth map FBO
-    // -----------------------
     const unsigned int SHADOW_WIDTH = 1600, SHADOW_HEIGHT = 1566;
     unsigned int depthMapFBO;
     glGenFramebuffers(1, &depthMapFBO);
@@ -300,6 +357,8 @@ int main() {
     glReadBuffer(GL_NONE);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     
+    
+    
     // shader configuration
     // --------------------
     horseShader.use();
@@ -310,24 +369,31 @@ int main() {
     groundShader.setInt("grassTex", 0);
     groundShader.setInt("shadowMap", 1);
     
+    
     //troop values;
-    vector<float> originalPositionOnX=genRandomMove(troopSize);
-    vector<float> originalPositionOnZ=genRandomMove(troopSize);
-    vector<float> originalRotations=genRandomRotationOnY(troopSize);
+    originalPositionOnX=genRandomMove(troopSize);
+    originalPositionOnZ=genRandomMove(troopSize);
+    originalRotations=genRandomRotationOnY(troopSize);
     for(int i=0;i<troopSize;i++)
     {
         horseTroop.push_back(Horse(originalPositionOnX[i],originalPositionOnZ[i],originalRotations[i]));
     }
     
-    //game loop
+    
+    //***********************************************
+    //**               GAME LOOP                   **
+    //***********************************************
+    
     while(!glfwWindowShouldClose(window))
     {
         glfwPollEvents();
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
         
+        //***********************************************
+        //**               shadow pass 1               **
+        //***********************************************
         
-        //shadow part
         //--------------------------------------------------------------
         // 1. render depth of scene to texture (from light's perspective)
         // --------------------------------------------------------------
@@ -360,9 +426,11 @@ int main() {
         {
             it->drawHorse(simpleDepthShder,(it->originalRotation+it->userRotateOnY),it->moveLength,it->userScale,it->worldrotationX,it->worldrotationY);
         }
-        
-        
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        
+        //***********************************************
+        //**               shadow pass 2               **
+        //***********************************************
         
         // reset viewport
         int width_,height_;
@@ -460,8 +528,6 @@ int main() {
         glBindVertexArray(VAOs[3]);
         glDrawArrays(GL_TRIANGLES, 0, 36);
         
-
-        
         //draw horse troop
         glBindVertexArray(VAOs[2]);
         horseShader.use();
@@ -474,7 +540,7 @@ int main() {
         horseShader.setInt("shadowOn", shadowOn);
         horseShader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
         
-        for(int i=0;i<horseTroop.size();++i)
+        for(int i=0;i<horseTroop.size();++i)//different textures for different horses
         {
             glActiveTexture(GL_TEXTURE0);
             if(i%3==0)
@@ -493,16 +559,36 @@ int main() {
             glBindTexture(GL_TEXTURE_2D, depthMap);
             horseTroop[i].drawHorse(horseShader,(horseTroop[i].originalRotation+horseTroop[i].userRotateOnY),horseTroop[i].moveLength,horseTroop[i].userScale,horseTroop[i].worldrotationX,horseTroop[i].worldrotationY);
         }
+        
+        
+
+        //draw skybox
+        glBindVertexArray(VAOs[4]);
+        skyboxShader.use();
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxTexture);
+        skyboxShader.setMat4("view", glm::mat4(glm::mat3(view)));
+        skyboxShader.setMat4("projection", projection);
+        glm::mat4 skyboxModel = glm::mat4(1.0f);
+        skyboxModel=glm::rotate(skyboxModel, glm::radians(worldrotationX), glm::vec3(1.0,0.0,0.0));
+        skyboxModel=glm::rotate(skyboxModel, glm::radians(worldrotationY), glm::vec3(0.0,1.0,0.0));
+        skyboxModel=glm::scale(skyboxModel, glm::vec3(100.0,100.0,100.0));
+        skyboxShader.setMat4("model", skyboxModel);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+        
+        
         glfwSwapBuffers(window);
     }
     
-    glDeleteVertexArrays(4,VAOs);
+    glDeleteVertexArrays(5,VAOs);
     glDeleteBuffers(3,VBOs);
-    
     glfwTerminate();
     return 0;
 }
 
+//***********************************************
+//**          function definitions             **
+//***********************************************
 
 void window_size_callback(GLFWwindow* window, int width, int height)
 {
@@ -572,6 +658,15 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
         for(vector<Horse>::iterator it=horseTroop.begin();it!=horseTroop.end();++it)
         {
             it->worldrotationY=0.0;
+        }
+        for(int i=0;i<horseTroop.size();++i)
+        {
+            horseTroop[i].originalPosOnX=originalPositionOnX[i];
+            horseTroop[i].originalPosOnZ=originalPositionOnZ[i];
+            horseTroop[i].originalRotation=originalRotations[i];
+            horseTroop[i].isRunning=false;
+            horseTroop[i].resetJoints();
+            horseTroop[i].canMove=true;
         }
     }
     if(key==GLFW_KEY_U&&action==GLFW_PRESS)//random scale up one horse
