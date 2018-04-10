@@ -1,9 +1,12 @@
-#version 330
+//from https://learnopengl.com/
+#version 330 core
+out vec4 FragColor;
 
-in vec3 texCoord;
-out vec4 fragColor;
-uniform samplerCube cubemap;
+in vec3 TexCoords;
 
-void main () {
-    fragColor = texture(cubemap, texCoord);
+uniform samplerCube skybox;
+
+void main()
+{
+    FragColor = texture(skybox, TexCoords);
 }
