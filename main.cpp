@@ -367,8 +367,7 @@ int main() {
         "back.jpg"
     };
     unsigned int skyboxTexture=loadCubemap(faces);
-    skyboxShader.use();
-    skyboxShader.setInt("skybox", 0);
+
     
     //***********************************************
     //**               Depth Map                   **
@@ -404,6 +403,9 @@ int main() {
     groundShader.use();
     groundShader.setInt("grassTex", 0);
     groundShader.setInt("shadowMap", 1);
+    
+    skyboxShader.use();
+    skyboxShader.setInt("skybox", 0);
 
     
     //troop values;
@@ -435,8 +437,7 @@ int main() {
         // --------------------------------------------------------------
         glm::mat4 lightProjection, lightView;
         glm::mat4 lightSpaceMatrix;
-        float near_plane = -20.0f, far_plane = 500.0f;
-        lightProjection=glm::perspective(glm::radians(130.0f), (GLfloat)SHADOW_WIDTH / (GLfloat)SHADOW_HEIGHT, 1.0f, 300.0f);
+        lightProjection=glm::perspective(glm::radians(110.0f), (GLfloat)SHADOW_WIDTH / (GLfloat)SHADOW_HEIGHT, 2.0f, 200.0f);
         lightView = glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
         lightSpaceMatrix = lightProjection * lightView;
         // render scene from light's point of view
