@@ -5,8 +5,14 @@ Rui Zhao 40018813
 
 Functionalities and features:
 1. Render a troop of 20 horses with random positions and orientations on the ground.
-2. Implemented the collision detection with orientated bounding box, see OBBCollider.h and OBBCollider.cpp.
-3. When press H key repeatedly, horses will move straight ahead for random steps, then rotate either 15 degrees or -15 degrees. After each movement and rotation, check if there’s collision between horses, if yes, make random one stationary.
+
+**************************************************
+2. Design collider class with help of math (compare projections of four corner points on X and Z axis), and implemented the collision detection with orientated bounding box, see OBBCollider.h and OBBCollider.cpp.
+Designed the collider all by myself, details about how I got the the math done is shown in attached pics.
+***************************************************
+
+
+3. H key toggles the final project effect, where horses will move straight ahead for random steps, then rotate either 15 degrees or -15 degrees. After each movement and rotation, check if there’s collision between horses, if yes, make random one stationary. Also find the appropriate angle so that a horse won’t collide with another one that is already being stopped.
 4. Other functionalities are the same as assignment 2 (including shadow, texture, world rotation, camera movement etc.)
 
 ***************************************
@@ -26,3 +32,5 @@ https://www.google.ca/url?sa=i&rct=j&q=&esrc=s&source=images&cd=&cad=rja&uact=8&
 Grass texture from:
 https://www.google.ca/url?sa=i&rct=j&q=&esrc=s&source=images&cd=&cad=rja&uact=8&ved=2ahUKEwjNnN3Z87DaAhWRT98KHfakCbwQjRx6BAgAEAU&url=https%3A%2F%2Fcreativemarket.com%2Fhhh316%2F247499-Lush-Seamless-Grass-Texture&psig=AOvVaw2VlePPkIBxgPR-ybPlQtUt&ust=1523490815822133
 
+Skybox from:
+http://www.custommapmakers.org/skyboxes.php

@@ -231,3 +231,5 @@ void OBBCollider::coutInfor() const
     std::cout<<minRangeOnX<<" "<<maxRangeOnX<<" "<<minRangeOnZ<<" "<<maxRangeOnZ<<std::endl;
 }
 
+
+

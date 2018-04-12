@@ -39,6 +39,7 @@ void Horse::drawHorse(const ShaderProg &shader,float rotateOnY,float moveLength,
         }
     }
     
+    
     body(shader,rotateOnY,moveLength,userScale,worldrotationX,worldrotationY);
     model_body=glm::scale(model_body, glm::vec3(1.0f/4.0f,1.0f/1.5f,1.0f/2.0f));
     //eliminate the scaler on body model, since its not uniformly scaled. otherwise, rotation will have weird result

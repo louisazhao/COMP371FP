@@ -82,6 +82,7 @@ bool textureAct=false;
 bool shadowOn=false;
 
 
+
 //***********************************************
 //**               prototypes                  **
 //***********************************************
@@ -101,6 +102,12 @@ unsigned int loadCubemap(vector<std::string> faces);
 vector<float> genRandomMove(int number=troopSize);
 vector<float> genRandomRotationOnY(int number=troopSize);
 
+bool finalEffect=false;
+void troopMoveAndCollide();
+int timeInterval=0;
+bool firstTime=true;
+float potentialRotation1;
+float potentialRotation2;
 
 //***********************************************
 //**               main function               **
@@ -586,6 +593,10 @@ int main() {
             {
                 glBindTexture(GL_TEXTURE_2D, metalTexture);
             }
+            else if(i%5==0)
+            {
+                glBindTexture(GL_TEXTURE_2D, brickTexture);
+            }
             else
             {
                 glBindTexture(GL_TEXTURE_2D, patteredTexture);
@@ -594,7 +605,11 @@ int main() {
             glBindTexture(GL_TEXTURE_2D, depthMap);
             horseTroop[i].drawHorse(horseShader,(horseTroop[i].originalRotation+horseTroop[i].userRotateOnY),horseTroop[i].moveLength,horseTroop[i].userScale,horseTroop[i].worldrotationX,horseTroop[i].worldrotationY);
         }
-        
+        if(finalEffect&&timeInterval%9==0)
+        {
+            troopMoveAndCollide();
+        }
+        timeInterval++;//slow down the animation
         
 
         //draw skybox
@@ -793,52 +808,12 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
         }
     }
     
-    if(key==GLFW_KEY_H&&action==GLFW_REPEAT)
+    if(key==GLFW_KEY_H&&action==GLFW_PRESS)//toggle the final project effect
     {
-        float randomStep;
-        std::vector<float> angles={-15,15};
-        int randomDirection;
-        int randomStop=rand()%2;
-        
-        //move random steps with random rotation
-        for(int i=0;i<horseTroop.size();++i)
-        {
-            randomStep=rand()%5+1;
-            randomDirection=rand()%2;
-            horseTroop[i].move(angles[randomDirection], randomStep);
-        }
-        
-        //collision detection
-        for(int i=0;i<horseTroop.size();++i)
-        {
-            for(int j=i+1;j<horseTroop.size();++j)
-            {
-                if(horseTroop[i].collider.inRange(horseTroop[j].collider))
-                {
-                    if(horseTroop[j].canMove==false)
-                    {
-                        horseTroop[i].canMove=false;
-                    }
-                    else if(horseTroop[i].canMove==false)
-                    {
-                        horseTroop[j].canMove=false;
-                    }
-                    else
-                    {
-                        if(randomStop==0)
-                        {
-                            horseTroop[i].canMove=false;
-                        }
-                        else
-                        {
-                            horseTroop[j].canMove=false;
-                        }
-                    }
-                    //horseTroop[j].canMove=false;
-                    //horseTroop[j].bounceAway();
-                }
-            }
-        }
+        if(finalEffect==false)
+        {finalEffect=true;}
+        else
+        {finalEffect=false;}
     }
 }
 
@@ -985,4 +960,84 @@ vector<float> genRandomRotationOnY(int number)
         result.push_back(random);
     }
     return result;
+}
+
+//move the horses forward and then rotate, check collision after each loop
+void troopMoveAndCollide()
+{
+    float randomStep;
+    std::vector<float> angles={-15,15};
+    int randomDirection;
+    int randomStop;
+    float difference1=0.0;
+    float difference2=0.0;
+    
+    //move random steps with random rotation
+    for(int i=0;i<horseTroop.size();++i)
+    {
+        randomStep=rand()%5+1;
+        randomDirection=rand()%2;
+        horseTroop[i].move(angles[randomDirection], randomStep);
+    }
+    
+    //collision detection
+    for(int i=0;i<horseTroop.size();++i)
+    {
+        for(int j=i+1;j<horseTroop.size();++j)
+        {
+            if(horseTroop[i].collider.inRange(horseTroop[j].collider))
+            {
+                if(horseTroop[j].canMove==false)
+                {
+                    if(horseTroop[i].collider.inRange(horseTroop[j].collider))
+                    {
+                        potentialRotation1+=15.0f;//find the right angle so that it won't collide anymore
+                        difference1=15.0;
+                    }
+                }
+                else if(horseTroop[i].canMove==false)
+                {
+                    if(horseTroop[i].collider.inRange(horseTroop[j].collider))
+                    {
+                        potentialRotation2+=15.0f;//find the right angle so that it won't collide anymore
+                        difference2=15.0;
+                    }
+                }
+                else
+                {
+                    randomStop=rand()%2;
+                    if(randomStop==0)
+                    {
+                        horseTroop[i].canMove=false;
+                    }
+                    else
+                    {
+                        horseTroop[j].canMove=false;
+                    }
+                }
+                
+                if(difference1==0)//if no change in angle, move randomly (no collision anymore)
+                {
+                    randomStep=rand()%5+1;
+                    randomDirection=rand()%2;
+                    horseTroop[i].move(angles[randomDirection], randomStep);
+                }
+                else
+                {
+                    horseTroop[i].move(potentialRotation1, 2.0);
+                }
+                
+                if(difference2==0)//if no change in angle, move randomly (no collision anymore)
+                {
+                    randomStep=rand()%5+1;
+                    randomDirection=rand()%2;
+                    horseTroop[j].move(angles[randomDirection], randomStep);
+                }
+                else
+                {
+                    horseTroop[j].move(potentialRotation1, 2.0);
+                }
+            }
+        }
+    }
 }

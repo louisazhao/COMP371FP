@@ -21,7 +21,7 @@ private:
     float lengthOfTheBody;
     float widthOfTheBody;
     float originalRotation;
-    float addedRotation=0.0;
+    //float addedRotation=0.0;
     //helper functions
     float calculateR() const;
   
@@ -32,6 +32,7 @@ private:
     float angleAlfa();
     //void getRangeOnBothAxis();
 public:
+    float addedRotation=0.0;
     void getRangeOnBothAxis();
     bool collisionOnX(const OBBCollider& other) const;
     bool collisionOnZ(const OBBCollider& other) const;
@@ -42,7 +43,6 @@ public:
     void updateCenter(float x, float z);
     void updateAddedRotation(float x);
     void coutInfor() const;
-
 };
 
 
