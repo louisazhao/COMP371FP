@@ -7,7 +7,7 @@ Functionalities and features:
 1. Render a troop of 20 horses with random positions and orientations on the ground.
 
 **************************************************
-2. Design collider class with help of math (compare projections of four corner points on X and Z axis), and implemented the collision detection with orientated bounding box, see OBBCollider.h and OBBCollider.cpp.
+2. Design collider class with help of math (compare projections of four corner points on X and Z axis, y axis is not considered because our horses cannot jump for now), and implemented the collision detection with orientated bounding box, see OBBCollider.h and OBBCollider.cpp.
 Designed the collider all by myself, details about how I got the the math done is shown in attached pics.
 ***************************************************
 
